@@ -106,44 +106,24 @@ bool GetPortInfo(PORT_INFO_VECTOR* info)
     return true;
 }
 
-std::string TextAlign(std::string text)
+std::vector<std::string> Transform(int i)
 {
-    for (int i = text.length(); i < 20; i++)
-    {
-        text += " ";
-    }
-    return text;
-}
+    std::string name(pi.PortInfo[i].Name.begin(), pi.PortInfo[i].Name.end());
+    std::string pid = std::to_string(pi.PortInfo[i].PID);
+    std::string port = std::to_string(pi.PortInfo[i].Port);
 
-std::string TextAlign(int text)
-{
-    std::string temp = std::to_string(text);
+    std::vector<std::string> temp;
 
-    while (temp.length() < 20)
-    {
-        temp += " ";
-    }
-    return temp;
-}
-
-std::string Transform(int i)
-{
-    std::string temp = "";
-    std::wstring t = pi.PortInfo[i].Name;
-    std::string name(t.begin(), t.end());
-
-    temp += TextAlign(name);
-    temp += " | ";
-    temp += TextAlign(pi.PortInfo[i].PID);
-    temp += " | ";
-    temp += TextAlign(pi.PortInfo[i].Port);
+    temp.push_back(name);
+    temp.push_back(pid);
+    temp.push_back(port);
 
     return temp;
 }
 
-std::vector<std::string> TransformInfosInString()
+std::vector<std::vector<std::string>> TransformInfosInString(int code = -1)
 {
-    std::vector<std::string> result;
+    std::vector<std::vector<std::string>> result;
 
     for (int i = 0; i < pi.PortInfo.size(); i++)
     {
@@ -152,24 +132,28 @@ std::vector<std::string> TransformInfosInString()
     return result;
 }
 
-extern "C" _declspec(dllexport) std::vector<std::string> GetPortsInfo()
+extern "C" _declspec(dllexport) std::vector<std::vector<std::string>> GetPortsInfo()
 {
     if (pi.PortInfo.empty())
     {
         GetPortInfo(&pi);
     }
 
-    std::vector<std::string> result = TransformInfosInString();
+    std::vector<std::vector<std::string>> result = TransformInfosInString();
     return result;
 }
 
-extern "C" _declspec(dllexport) std::vector<std::string> CheckSpecificPort(int port)
+extern "C" _declspec(dllexport) std::vector<std::vector<std::string>> CheckSpecificPort(int port)
 {
     if (pi.PortInfo.empty())
     {
         GetPortInfo(&pi);
     }
-    std::vector<std::string> result;
+
+
+    std::vector<std::vector<std::string>> result;
+
+    std::vector<std::string> temp;
 
     if (port >= 0 && port <= 65535)
     {
@@ -184,12 +168,17 @@ extern "C" _declspec(dllexport) std::vector<std::string> CheckSpecificPort(int p
         }
         if (flag)
         {
-            result.push_back("Port is opened.");
+            temp.push_back("Port is opened.");
+            temp.push_back("Port is opened.");
+            temp.push_back("Port is opened.");
         }
     }
     else
     { 
-        result.push_back("Port does not exist.");
+        temp.push_back("Port does not exist.");
+        temp.push_back("Port does not exist.");
+        temp.push_back("Port does not exist.");
     }
+    result.push_back(temp);
     return result;
 }

@@ -9,14 +9,10 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include <stdlib.h>
 #include "commctrl.h"
 
-#define ID_LIST 1
-#define BUFFERSIZE 5000
-#define MEMSIZE 90024 
-
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-typedef std::vector<std::string>(*ALLPORTS)();
-typedef std::vector<std::string>(*CERTAINPORT)(int);
+typedef std::vector<std::vector<std::string>>(*ALLPORTS)();
+typedef std::vector<std::vector<std::string>>(*CERTAINPORT)(int);
 
 ALLPORTS allPorts;
 CERTAINPORT certainPort;
@@ -24,8 +20,13 @@ CERTAINPORT certainPort;
 TCHAR dllName[] = TEXT("PortScannerLib");
 
 HINSTANCE hMyDll;
-HWND hListBox;
+HWND hListView;
 HWND FindPort;
+
+void TransformToLptstr(TCHAR* dest, std::string source);
+int GetLength(const LPTSTR a);
+int GetPort();
+void ShowPortInfos(std::vector<std::string> data);
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR szCmdLine, int nCmdShow)
 {
@@ -67,21 +68,65 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR szCmdLine, int nCmdS
 	return static_cast<int> (msg.wParam);
 }
 
+int CreateItem(HWND hwndList, wchar_t* text)
+{
+	LVITEMW lvi = { 0 };
+	lvi.mask = LVIF_TEXT;
+	lvi.pszText = text;
+	return ListView_InsertItem(hwndList, &lvi);
+}
+
+void AddColumn(HWND hwnd, int iCol, std::string Text)
+{
+	int widthCol = 200;
+
+	TCHAR lpStr[256];
+	TransformToLptstr(lpStr, Text);
+
+	LV_COLUMN p;
+	p.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
+	p.fmt = LVCFMT_LEFT;
+	p.cx = widthCol;
+	p.pszText = lpStr;
+	p.cchTextMax = 0;
+	 
+	ListView_InsertColumn(hwnd, iCol, &p);
+}
+
+void InsertItems(std::vector<std::string> data, int iRow)
+{
+	LVITEM lvi;
+
+	memset(&lvi, 0, sizeof(lvi));
+	lvi.mask = LVIF_TEXT | LVIF_TEXT;
+
+	lvi.iItem = iRow;
+
+	lvi.iSubItem = 0;
+	ListView_InsertItem(hListView, &lvi);
+	lvi.iSubItem = 1;
+	ListView_InsertItem(hListView, &lvi);
+	lvi.iSubItem = 2;
+	ListView_InsertItem(hListView, &lvi);
+
+	TCHAR lpStrFirst[256];
+	TCHAR lpStrSecond[256];
+	TCHAR lpStrThird[256];
+
+	TransformToLptstr(lpStrFirst, data.at(0));
+	TransformToLptstr(lpStrSecond, data.at(1));
+	TransformToLptstr(lpStrThird, data.at(2));
+
+	ListView_SetItemText(hListView, iRow, 0, lpStrFirst);
+	ListView_SetItemText(hListView, iRow, 1, lpStrSecond);
+	ListView_SetItemText(hListView, iRow, 2, lpStrThird);
+}
+
 void CreateUI(HWND hEdit, HWND hWnd)
 {
-	HWND hwnd_st_u = CreateWindow(L"static", NULL,
-		WS_CHILD | WS_VISIBLE | WS_TABSTOP,
-		20, 50, 500, 20,
-		hWnd, reinterpret_cast<HMENU>(3),
-		nullptr, nullptr);
-
-	SetWindowText(hwnd_st_u, L"Process name        | Process pid        | Process port");
-
-	hListBox = CreateWindow(L"listbox", NULL,
-		WS_CHILD | WS_VISIBLE | LBS_STANDARD |
-		LBS_WANTKEYBOARDINPUT,
-		20, 70, 500, 300,
-		hWnd, (HMENU)ID_LIST, nullptr, nullptr);
+	hListView = CreateWindow(WC_LISTVIEW, L"",
+		WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | LVS_REPORT | LVS_EDITLABELS,
+		20, 50, 600, 400, hWnd, reinterpret_cast<HMENU>(3), nullptr, nullptr);
 
 	HWND hAllPortsButton = CreateWindow(
 		L"BUTTON",
@@ -109,6 +154,10 @@ void CreateUI(HWND hEdit, HWND hWnd)
 		allPorts = (ALLPORTS)GetProcAddress(hMyDll, "GetPortsInfo");
 		certainPort = (CERTAINPORT)GetProcAddress(hMyDll, "CheckSpecificPort");
 	}
+
+	AddColumn(hListView, 0, "Process name");
+	AddColumn(hListView, 0, "Process pid");
+	AddColumn(hListView, 0, "Process port");
 }
 
 int CastChar(LPTSTR str)
@@ -169,30 +218,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case 0:
 				if (allPorts != NULL)
 				{
-					std::vector<std::string> data = allPorts();
-					SendMessage(hListBox, LB_RESETCONTENT, 0, 0);
-
+					std::vector<std::vector<std::string>> data = allPorts();
+					ListView_DeleteAllItems(hListView);
 					for (int i = 0; i < data.size(); i++)
 					{
-						TCHAR lpStr[256];
-						TransformToLptstr(lpStr, data.at(i));
-
-						SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)(LPSTR)lpStr);
+						InsertItems(data.at(i), i);
 					}
 				}
 				break;
 			case 1:
 				if (allPorts != NULL)
 				{
-					std::vector<std::string> data = certainPort(GetPort());
-					SendMessage(hListBox, LB_RESETCONTENT, 0, 0);
-
+					ListView_DeleteAllItems(hListView);
+					std::vector<std::vector<std::string>> data = certainPort(GetPort());
 					for (int i = 0; i < data.size(); i++)
 					{
-						TCHAR lpStr[256];
-						TransformToLptstr(lpStr, data.at(i));
-
-						SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)(LPSTR)lpStr);
+						InsertItems(data.at(i), i);
 					}
 				}
 				break;
