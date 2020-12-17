@@ -2,7 +2,8 @@
 #include <vector>
 #include <string>
 
-typedef std::vector<std::string>(*MYFUNC)();
+typedef std::vector<std::string>(*ALLPORTS)();
+typedef std::string(*CERTAINPORT)(int);
 
 TCHAR dllName[] = TEXT("PortScannerLib");
 
@@ -11,10 +12,14 @@ int main()
 	HINSTANCE hMyDll;
 	if ((hMyDll = LoadLibrary(dllName)) != NULL)
 	{
-		MYFUNC pfnMyFunction;
+		ALLPORTS allPorts;
+		CERTAINPORT certainPort;
 
-		pfnMyFunction = (MYFUNC)GetProcAddress(hMyDll, "GetPortsInfo");
+		allPorts = (ALLPORTS)GetProcAddress(hMyDll, "GetPortsInfo");
+		certainPort = (CERTAINPORT)GetProcAddress(hMyDll, "CheckSpecificPort");
 
-		std::vector<std::string> data = pfnMyFunction();
+		std::vector<std::string> data = allPorts();
+		std::string a = certainPort(4);
+		std::string b = certainPort(90909090);
 	}
 }
