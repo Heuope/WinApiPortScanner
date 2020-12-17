@@ -108,7 +108,7 @@ bool GetPortInfo(PORT_INFO_VECTOR* info)
 
 std::string TextAlign(std::string text)
 {
-    for (int i = text.length(); i < 18; i++)
+    for (int i = text.length(); i < 20; i++)
     {
         text += " ";
     }
@@ -119,7 +119,7 @@ std::string TextAlign(int text)
 {
     std::string temp = std::to_string(text);
 
-    for (int i = temp.length(); i < 10; i++)
+    while (temp.length() < 20)
     {
         temp += " ";
     }
@@ -132,10 +132,10 @@ std::string Transform(int i)
     std::wstring t = pi.PortInfo[i].Name;
     std::string name(t.begin(), t.end());
 
-    temp += name;
-    temp += "| ";
+    temp += TextAlign(name);
+    temp += " | ";
     temp += TextAlign(pi.PortInfo[i].PID);
-    temp += "| ";
+    temp += " | ";
     temp += TextAlign(pi.PortInfo[i].Port);
 
     return temp;
@@ -163,13 +163,13 @@ extern "C" _declspec(dllexport) std::vector<std::string> GetPortsInfo()
     return result;
 }
 
-extern "C" _declspec(dllexport) std::string CheckSpecificPort(int port)
+extern "C" _declspec(dllexport) std::vector<std::string> CheckSpecificPort(int port)
 {
     if (pi.PortInfo.empty())
     {
         GetPortInfo(&pi);
     }
-    std::string result;
+    std::vector<std::string> result;
 
     if (port >= 0 && port <= 65535)
     {
@@ -178,18 +178,18 @@ extern "C" _declspec(dllexport) std::string CheckSpecificPort(int port)
         {
             if (port == pi.PortInfo[i].Port)
             {
-                result = Transform(i);
+                result.push_back(Transform(i));
                 flag = false;
             }
         }
         if (flag)
         {
-            result = "Port is opened.";
+            result.push_back("Port is opened.");
         }
     }
     else
     { 
-        result = "Port does not exist.";
+        result.push_back("Port does not exist.");
     }
     return result;
 }
