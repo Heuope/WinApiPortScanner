@@ -155,9 +155,9 @@ void CreateUI(HWND hEdit, HWND hWnd)
 		certainPort = (CERTAINPORT)GetProcAddress(hMyDll, "CheckSpecificPort");
 	}
 
-	AddColumn(hListView, 0, "Process name");
-	AddColumn(hListView, 0, "Process pid");
 	AddColumn(hListView, 0, "Process port");
+	AddColumn(hListView, 0, "Process pid");
+	AddColumn(hListView, 0, "Process name");
 }
 
 int CastChar(LPTSTR str)
@@ -169,6 +169,10 @@ int CastChar(LPTSTR str)
 		a[i] = str[i];
 	}
 
+	if (atoi(a) == 0 && a != "0")
+	{
+		return -1;
+	}
 	return atoi(a);
 }
 
